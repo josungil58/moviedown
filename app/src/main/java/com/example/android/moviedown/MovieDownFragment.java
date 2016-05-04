@@ -1,7 +1,9 @@
 package com.example.android.moviedown;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
@@ -26,6 +28,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.StringTokenizer;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -33,7 +36,6 @@ import java.util.ArrayList;
 public class MovieDownFragment extends Fragment {
 
     ArrayAdapter <String> mMovieAdapter;
-    String[] movieID, movieTitle, movieReleaseDate, movieVoteAverage, movieOverView, moviePosterPath;
 
     public MovieDownFragment() {
     }
@@ -95,52 +97,88 @@ public class MovieDownFragment extends Fragment {
         movieTask.execute();
     }
 
-    class FetchMovieTask extends AsyncTask<Void, Void, String[]> {
+    class FetchMovieTask extends AsyncTask<String, Void, String[]> {
+
         private final String LOG_TAG = FetchMovieTask.class.getSimpleName();
 
-        @Override
+        private String[] getMovieDataFromJson(String movieJsonStr)
+                throws JSONException {
+
+            final String TMDB_MOVIE_ID = "id";
+            final String TMDB_MOVIE_TITLE = "original_title";
+            final String TMDB_RELEASE_DATE = "release_date";
+            final String TMDB_USER_RATING= "vote_average";
+            final String TMDB_MOVIE_SYNOPSIS = "overview";
+            final String TMDB_MOVIE_POSTER = "poster_path";
+
+            JSONObject movieJson = new JSONObject(movieJsonStr);
+            JSONArray movieArray = movieJson.getJSONArray(TMDB_MOVIE_ID);
+
+            for (int i = 0; i < movieArray.length(); i++){
+                JSONObject movieDown = movieArray.getJSONObject(i);
+                JSONObject movieObject = movieDown.
+            }
+
+    }
+
+    @Override
         protected String[] doInBackground(Void... params) {
             HttpURLConnection urlConnection = null;
             BufferedReader reader = null;
-
-            // Will contain the raw JSON response as a string.
             String movieJsonStr = null;
 
+            int page = 5;
+
             try {
-                URL url = new URL("http://api.themoviedb.org/3/discover/movie?sort_by=popularity.desc&api_key=c20129fdf73b5df3ab44548ad7f73586");
+
+                final String MOVIEDOWN_BASE_URL =
+                        "https//api.themoviedb.org/3/movie/popular";
+                final String PAGE = "page";
+                final String APPID_PARAM = "api_key";
+
+                Uri builtUri = Uri.parse(MOVIEDOWN_BASE_URL).buildUpon()
+                        .appendQueryParameter(PAGE, page)
+                        .appendQueryParameter(APPID_PARAM, BuildConfig.MOVIEDOWN_API_KEY)
+                        .build();
+
+                URL url = new URL(builtUri.toString());
+
+                Log.v(LOG_TAG, "Built Uri " + builtUri.toString());
 
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("GET");
                 urlConnection.connect();
 
-                // Read the input stream into a String
                 InputStream inputStream = urlConnection.getInputStream();
                 StringBuffer buffer = new StringBuffer();
+
                 if (inputStream == null) {
-                    // Nothing to do.
                     return null;
                 }
+
                 reader = new BufferedReader(new InputStreamReader(inputStream));
 
                 String line;
                 while ((line = reader.readLine()) != null) {
-
                     buffer.append(line + "\n");
                 }
 
                 if (buffer.length() == 0) {
-                    // Stream was empty.  No point in parsing.
-                    return null;
+                      return null;
                 }
+
                 movieJsonStr = buffer.toString();
+                Log.v(LOG_TAG, "Movie Down String " + movieJsonStr);
 
             } catch (IOException e) {
                 Log.e(LOG_TAG, "Error ", e);
                 return null;
+
             } finally {
                 if (urlConnection != null) {
                     urlConnection.disconnect();
                 }
+
                 if (reader != null) {
                     try {
                         reader.close();
@@ -149,44 +187,24 @@ public class MovieDownFragment extends Fragment {
                     }
                 }
             }
+
             try {
                 return getMovieDataFromJson(movieJsonStr);
-            } catch (JSONException j) {
-                Log.e(LOG_TAG, "JSON Error", j);
+
+            } catch (JSONException e) {
+                Log.e(LOG_TAG, e.getMessage(), e);
+                e.printStackTrace();
             }
             return null;
         }
 
-        private String[] getMovieDataFromJson(String forecastJsonStr)
-                throws JSONException {
-            JSONObject movieJson = new JSONObject(forecastJsonStr);
-            JSONArray movieArray = movieJson.getJSONArray("results");
-            movieId = new String[movieArray.length()];
-            movieTitle = new String[movieArray.length()];
-            movieReleaseDate = new String[movieArray.length()];
-            movieVoteAverage = new String[movieArray.length()];
-            movieOverview = new String[movieArray.length()];
-            moviePosterPath = new String[movieArray.length()];
-            for (int i = 0; i < movieArray.length(); i++)
-            {
-                JSONObject movie = movieArray.getJSONObject(i);
-                movieId[i] = movie.getString("id");
-                movieTitle[i] = movie.getString("original_title");
-                movieReleaseDate[i] = movie.getString("release_date");
-                movieVoteAverage[i] = movie.getString("vote_average");
-                movieOverview[i] = movie.getString("overview");
-                moviePosterPath[i] = movie.getString("poster_path");
-            }
-            return movieTitle;
-        }
-
         @Override
-        protected void onPostExecute(String[] strings)
-        {
-            super.onPostExecute(strings);
-            mMovieAdapter.clear();
-            mMovieAdapter.addAll(strings);
+        protected void onPostExecute(String[] result){
+            if (result != null){
+                mMovieAdapter.clear();
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB){
+                    mMovieAdapter.addAll(result);
         }
-    }
 }
 
