@@ -101,7 +101,7 @@ public class MovieDownFragment extends Fragment {
 
         private final String LOG_TAG = FetchMovieTask.class.getSimpleName();
 
-        private String[] getMovieDataFromJson(String movieJsonStr)
+        private String[] getMovieDataFromJson(String movieJsonStr, int page)
                 throws JSONException {
 
             final String TMDB_MOVIE_ID = "id";
@@ -114,9 +114,21 @@ public class MovieDownFragment extends Fragment {
             JSONObject movieJson = new JSONObject(movieJsonStr);
             JSONArray movieArray = movieJson.getJSONArray(TMDB_MOVIE_ID);
 
+            String[] resultStrs = new String[page];
+
             for (int i = 0; i < movieArray.length(); i++){
+
+                String title;
+                String date;
+                String rate;
+                String synopsis;
+                String poster;
+
                 JSONObject movieDown = movieArray.getJSONObject(i);
-                JSONObject movieObject = movieDown.
+
+                JSONObject movieObject = movieDown;
+
+                resultStrs[i] =
             }
 
     }
@@ -130,7 +142,6 @@ public class MovieDownFragment extends Fragment {
             int page = 5;
 
             try {
-
                 final String MOVIEDOWN_BASE_URL =
                         "https//api.themoviedb.org/3/movie/popular";
                 final String PAGE = "page";
